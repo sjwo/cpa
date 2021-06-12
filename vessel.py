@@ -11,7 +11,7 @@ License: BSD - Clause 2
 import numpy as np
 import matplotlib.pyplot as plt
 
-class vessel(object):
+class Vessel(object):
     def __init__(self,length,x,y,speed,heading):
         self.length = length
         self.pos = np.array([x,y])

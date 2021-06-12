@@ -7,13 +7,13 @@ First lets define two vessels with parameters shown below.
 
 
 ```python
-v1 = Vessel.vessel(length=5,
+v1 = vessel.Vessel(length=5,
                   x = 0,
                   y = 0,
                   speed = 5,
                   heading = 90)
 
-v2 = Vessel.vessel(length=5,
+v2 = vessel.Vessel(length=5,
                   x = 10,
                   y = 0,
                   speed = 10,
