@@ -8,8 +8,10 @@ Copyright 2021
 License: BSD - Clause 2
 '''
 
+# Python3, please. Developed on Ubuntu 20.04 for ROS Noetic.
+
 import rospy
-from . import Vessel
+from cpa import Vessel
 from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
 
@@ -53,6 +55,18 @@ def cpa_listener():
 
     rospy.Subscriber('/ben/odom', Odometry, odom_callback, queue_size=10)
     # rospy.Publisher('/ben/cpa')
+
+    vessel = Vessel()
+
+    # idea from ais_listener():
+    # while not rospy.is_shutdown():...
+
+    # idea from AsvSim.run():
+    # rospy.Subscriber('/ben/odom', Odometry, odom_callback, queue_size=10)
+    # rospy.Timer(rospy.Duration.from_sec(0.05), self.update)
+    # clock_timer = threading.Timer(self.wallclock_time_step,self.update_clock)
+    # clock_timer.start()
+    # rospy.spin()
 
 # modeled off ais_node.py:
 if __name__ == '__main__':
