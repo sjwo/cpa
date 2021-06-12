@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>cpa</name>
+  <version>0.0.0</version>
+  <description>The cpa package</description>
+
+  <maintainer email="sjw1000@wildcats.unh.edu">Stephen Wissow</maintainer>
+
+  <license>BSD</license>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>marine_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rospy</depend>
+
+  <export>
+  </export>
+</package>
