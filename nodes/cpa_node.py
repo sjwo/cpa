@@ -17,11 +17,12 @@ from marine_msgs.msg import Contact
 
 def odom_callback(data):
     # STUB
-    rospy.loginfo(rospy.get_caller_id() + "I heard Odometry message %s", data.data)
+    # print('O', end='')
+    rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
 
 def contact_callback(data):
     # STUB
-    rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", data.data)
+    rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", data)
 
 # from ais_manager.cpp:
 # void AISManager::scanForSources()
@@ -40,23 +41,31 @@ def contact_callback(data):
 #       }
 # }
 
+# Not yet working
 def scan_for_sources():
+    '''
+    Subscribe to all topics that publish Contact (AIS) messages.
+    '''
     sources = dict()
     topics = rospy.get_published_topics()
     # topic: [name, type]
     for topic in topics:
         if topic[1] == "marine_msgs/Contact":
+            rospy.loginfo(rospy.get_caller_id() + f'DEBUG: scan_for_sources found a source of marine_msgs/Contact called {topic[0]}')
             sources[topic[0]] = rospy.Subscriber(topic[0], Contact, contact_callback, queue_size=10)
 
 def cpa_listener():
     rospy.init_node('cpa')
-    # rospy.Subscriber('/base/ais/contacts', Contact, contact_callback, queue_size=10)
-    scan_for_sources()
-
     rospy.Subscriber('/ben/odom', Odometry, odom_callback, queue_size=10)
+    rospy.Subscriber('/ben/sensors/ais/contact', Contact, contact_callback, queue_size=10)
     # rospy.Publisher('/ben/cpa')
 
-    vessel = Vessel()
+    # vessel = Vessel()
+
+    while not rospy.is_shutdown():
+        # scan_for_sources()
+        rospy.loginfo(rospy.get_caller_id() + ".")
+        rospy.sleep(1)
 
     # idea from ais_listener():
     # while not rospy.is_shutdown():...
