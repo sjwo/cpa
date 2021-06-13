@@ -11,7 +11,7 @@ License: BSD - Clause 2
 # Python3, please. Developed on Ubuntu 20.04 for ROS Noetic.
 
 import rospy
-from cpa import Vessel
+from cpa.vessel import Vessel
 from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
 
