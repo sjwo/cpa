@@ -15,71 +15,82 @@ from cpa.vessel import Vessel
 from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
 
-def odom_callback(data):
-    # STUB
-    # print('O', end='')
-    rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
+class CpaNode():
+    def __init__(self):
+        rospy.init_node('cpa')
+        rospy.Subscriber('/ben/odom', Odometry, self.odom_callback, queue_size=10)
+        rospy.Subscriber('/ben/sensors/ais/contact', Contact, self.contact_callback, queue_size=10)
 
-def contact_callback(data):
-    # STUB
-    rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", data)
+        # odom_callbackup will update this
+        self.ben = None
 
-# from ais_manager.cpp:
-# void AISManager::scanForSources()
-# {
-#   ros::NodeHandle nh;
+        # TODO
+        # rospy.Publisher('/ben/cpa')
 
-#   ros::master::V_TopicInfo topic_info;
-#   ros::master::getTopics(topic_info);
+    def odom_callback(self, odom_msg):
+        rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
+        # TODO convert from radians (Quaternion) to degrees (Vessel)
+        cog = odom_msg.pose.pose.orientation.z
+        self.ben = Vessel(
+            # As of 2021-06-13, Vessel does not use length for anything.
+            length = None,
+            # TODO check units
+            x = odom_msg.pose.pose.position.x,
+            # TODO check units
+            y = odom_msg.pose.pose.position.y,
+            # TODO check units
+            speed = odom_msg.twist.twist.linear,
+            heading = cog,
+        )
 
-#   for(const auto t: topic_info)
-#     if (t.datatype == "marine_msgs/Contact")
-#       if (m_sources.find(t.name) == m_sources.end())
-#       {
-#         m_sources[t.name] = nh.subscribe(t.name, 10, &AISManager::contactCallback, this);
-#         m_ui->sourcesListWidget->addItem(t.name.c_str());
-#       }
-# }
+    def contact_callback(self, data):
+        # STUB
+        rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", data)
+        # TODO
+        # the CPA stuff here
+        # For each Contact:
+        # - get its x
+        # - get its y
+        # - get its speed
+        # - get its heading
+        # - put all this stuff into a vessel
+        # I guess there is some shared state, because odom_callback will be writing BEN's position, speed, and heading, and contact_callback will be reading it.
 
 # Not yet working
-def scan_for_sources():
-    '''
-    Subscribe to all topics that publish Contact (AIS) messages.
-    '''
-    sources = dict()
-    topics = rospy.get_published_topics()
-    # topic: [name, type]
-    for topic in topics:
-        if topic[1] == "marine_msgs/Contact":
-            rospy.loginfo(rospy.get_caller_id() + f'DEBUG: scan_for_sources found a source of marine_msgs/Contact called {topic[0]}')
-            sources[topic[0]] = rospy.Subscriber(topic[0], Contact, contact_callback, queue_size=10)
+    def scan_for_sources(self):
+        '''
+        Subscribe to all topics that publish Contact (AIS) messages.
+        '''
+        sources = dict()
+        topics = rospy.get_published_topics()
+        # topic: [name, type]
+        for topic in topics:
+            if topic[1] == "marine_msgs/Contact":
+                rospy.loginfo(rospy.get_caller_id() + f'DEBUG: scan_for_sources found a source of marine_msgs/Contact called {topic[0]}')
+                sources[topic[0]] = rospy.Subscriber(topic[0], Contact, self.contact_callback, queue_size=10)
 
-def cpa_listener():
-    rospy.init_node('cpa')
-    rospy.Subscriber('/ben/odom', Odometry, odom_callback, queue_size=10)
-    rospy.Subscriber('/ben/sensors/ais/contact', Contact, contact_callback, queue_size=10)
-    # rospy.Publisher('/ben/cpa')
+    def run(self):
+        # vessel = Vessel()
 
-    # vessel = Vessel()
+        while not rospy.is_shutdown():
+            # scan_for_sources()
+            rospy.loginfo(rospy.get_caller_id() + ".")
+            rospy.sleep(1)
 
-    while not rospy.is_shutdown():
-        # scan_for_sources()
-        rospy.loginfo(rospy.get_caller_id() + ".")
-        rospy.sleep(1)
+        # idea from ais_listener():
+        # while not rospy.is_shutdown():...
 
-    # idea from ais_listener():
-    # while not rospy.is_shutdown():...
-
-    # idea from AsvSim.run():
-    # rospy.Subscriber('/ben/odom', Odometry, odom_callback, queue_size=10)
-    # rospy.Timer(rospy.Duration.from_sec(0.05), self.update)
-    # clock_timer = threading.Timer(self.wallclock_time_step,self.update_clock)
-    # clock_timer.start()
-    # rospy.spin()
+        # idea from AsvSim.run():
+        # rospy.Subscriber('/ben/odom', Odometry, odom_callback, queue_size=10)
+        # rospy.Timer(rospy.Duration.from_sec(0.05), self.update)
+        # clock_timer = threading.Timer(self.wallclock_time_step,self.update_clock)
+        # clock_timer.start()
+        # rospy.spin()
 
 # modeled off ais_node.py:
 if __name__ == '__main__':
     try:
-        cpa_listener()
+        cpa_node = CpaNode()
+        cpa_node.run()
     except rospy.ROSInterruptException:
         pass
