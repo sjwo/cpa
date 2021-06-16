@@ -50,10 +50,23 @@ class CpaNode():
             heading = cog_deg,
         )
 
-    def contact_callback(self, data):
-        # STUB
+    def contact_callback(self, contact):
         rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", data)
+        loa = contact.dimension_to_bow + contact.dimension_to_stern
+        lat = contact.position.latitude
+        lon = contact.position.longitude
+        sog = contact.sog
+        cog = contact.cog
+        other_vessel = Vessel(
+            length = loa,
+            x = lon,
+            y = lat,
+            speed = sog,
+            heading = cog,
+        )
+        cpa = self.ben.cpa(other_vessel)
         # TODO
+        # publish CPA!
         # (Need to decide message type...maybe just a position? Or position with time?)
 
     # Not yet working; unused.
