@@ -9,6 +9,10 @@ License: BSD - Clause 2
 '''
 
 # Python3, please. Developed on Ubuntu 20.04 for ROS Noetic.
+# This code is not thread safe. It is required that all callbacks
+# in this node are executed in a single thread. This is supported
+# by ROS's default behavior of executing all callbacks, across all
+# nodes, within a single thread.
 
 from math import pi
 import rospy
@@ -30,6 +34,9 @@ class CpaNode():
         # rospy.Publisher('/ben/cpa')
 
     def odom_callback(self, odom_msg):
+        '''
+        Update instance state.
+        '''
         rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
         _roll, _pitch, cog_rad = euler_from_quaternion(odom_msg.pose.pose.orientation)
         cog_deg = (cog_rad / (2 * pi))* 360.0
