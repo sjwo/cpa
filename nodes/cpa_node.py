@@ -34,14 +34,12 @@ class CpaNode():
         _roll, _pitch, cog_rad = euler_from_quaternion(odom_msg.pose.pose.orientation)
         cog_deg = (cog_rad / (2 * pi))* 360.0
         self.ben = Vessel(
-            # As of 2021-06-13, the Vessel class does not use length for anything.
+            # As of 2021-06-13, the Vessel class does not use length for anything
             length = None,
-            # TODO check units
             x = odom_msg.pose.pose.position.x,
-            # TODO check units
             y = odom_msg.pose.pose.position.y,
-            # TODO check units
-            speed = odom_msg.twist.twist.linear,
+            # Convert from Vector3 to scalar
+            speed = odom_msg.twist.twist.linear.length(),
             heading = cog_deg,
         )
 
