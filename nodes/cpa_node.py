@@ -14,8 +14,10 @@ License: BSD - Clause 2
 # by ROS's default behavior of executing all callbacks, across all
 # nodes, within a single thread.
 
-from math import pi
+
 import rospy
+import numpy as np
+from math import pi
 from cpa.vessel import Vessel
 from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
@@ -38,7 +40,8 @@ class CpaNode():
         Update instance state.
         '''
         rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
-        _roll, _pitch, cog_rad = euler_from_quaternion(odom_msg.pose.pose.orientation)
+        o = odom_msg.pose.pose.orientation
+        _roll, _pitch, cog_rad = euler_from_quaternion([o.x, o.y, o.z, o.w])
         cog_deg = (cog_rad / (2 * pi))* 360.0
         self.ben = Vessel(
             # As of 2021-06-13, the Vessel class does not use length for anything
@@ -46,7 +49,7 @@ class CpaNode():
             x = odom_msg.pose.pose.position.x,
             y = odom_msg.pose.pose.position.y,
             # Convert from Vector3 to scalar
-            speed = odom_msg.twist.twist.linear.length(),
+            speed = np.linalg.norm(odom_msg.twist.twist.linear),
             heading = cog_deg,
         )
 
