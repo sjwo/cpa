@@ -54,17 +54,10 @@ class CpaNode():
         # STUB
         rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", data)
         # TODO
-        # the CPA stuff here
-        # For each Contact:
-        # - get its x
-        # - get its y
-        # - get its speed
-        # - get its heading
-        # - put all this stuff into a vessel
-        # I guess there is some shared state, because odom_callback will be writing BEN's position, speed, and heading, and contact_callback will be reading it.
+        # (Need to decide message type...maybe just a position? Or position with time?)
 
-# Not yet working
-    def scan_for_sources(self):
+    # Not yet working; unused.
+    def _scan_for_sources(self):
         '''
         Subscribe to all topics that publish Contact (AIS) messages.
         '''
