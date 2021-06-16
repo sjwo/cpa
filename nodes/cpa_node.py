@@ -10,10 +10,12 @@ License: BSD - Clause 2
 
 # Python3, please. Developed on Ubuntu 20.04 for ROS Noetic.
 
+from math import pi
 import rospy
 from cpa.vessel import Vessel
 from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
+from tf.transformations import euler_from_quaternion
 
 class CpaNode():
     def __init__(self):
@@ -29,10 +31,10 @@ class CpaNode():
 
     def odom_callback(self, odom_msg):
         rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
-        # TODO convert from radians (Quaternion) to degrees (Vessel)
-        cog = odom_msg.pose.pose.orientation.z
+        _roll, _pitch, cog_rad = euler_from_quaternion(odom_msg.pose.pose.orientation)
+        cog_deg = (cog_rad / (2 * pi))* 360.0
         self.ben = Vessel(
-            # As of 2021-06-13, Vessel does not use length for anything.
+            # As of 2021-06-13, the Vessel class does not use length for anything.
             length = None,
             # TODO check units
             x = odom_msg.pose.pose.position.x,
@@ -40,7 +42,7 @@ class CpaNode():
             y = odom_msg.pose.pose.position.y,
             # TODO check units
             speed = odom_msg.twist.twist.linear,
-            heading = cog,
+            heading = cog_deg,
         )
 
     def contact_callback(self, data):
