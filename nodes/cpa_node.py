@@ -51,7 +51,7 @@ class CpaNode():
         )
 
     def contact_callback(self, contact):
-        rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", data)
+        rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", contact)
         loa = contact.dimension_to_bow + contact.dimension_to_stern
         lat = contact.position.latitude
         lon = contact.position.longitude
