@@ -36,12 +36,12 @@ class CpaNode():
         self.tfListener = tf2_ros.TransformListener(tfBuffer)
 
         # odom_callbackup will update this
-        self.ben = None
+        self.us_odom = None
 
         # TODO
         # rospy.Publisher('/ben/cpa')
 
-    def convert_latlon_to_map(self, lat, lon, time):
+    def convert_contact_to_vessel_(self, lat, lon, time):
         '''
         Convert from latitude and longitude to vehicle's base_link reference frame.
 
@@ -72,40 +72,65 @@ class CpaNode():
 
     def odom_callback(self, odom_msg):
         '''
-        Read vessel's position, orientation, and speed, convert to vessel's base_link frame,
-        and save to shared state.
+        Save BEN's Odometry message to shared state for future access by contact_callback.
         '''
         # rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
         
+        self.odom = odom_msg
         
-        o = odom_msg.pose.pose.orientation
-        _roll, _pitch, cog_rad = euler_from_quaternion([o.x, o.y, o.z, o.w])
-        cog_deg = (cog_rad / (2 * pi))* 360.0
-        self.ben = Vessel(
-            # As of 2021-06-13, the Vessel class does not use length for anything
-            length = None,
-            x = odom_msg.pose.pose.position.x,
-            y = odom_msg.pose.pose.position.y,
-            # Convert from Vector3 to scalar
-            speed = np.linalg.norm(odom_msg.twist.twist.linear),
-            heading = cog_deg,
-        )
+        # o = odom_msg.pose.pose.orientation
+        # _roll, _pitch, cog_rad = euler_from_quaternion([o.x, o.y, o.z, o.w])
+        # cog_deg = (cog_rad / (2 * pi))* 360.0
+        # self.ben = Vessel(
+        #     # As of 2021-06-13, the Vessel class does not use length for anything
+        #     length = None,
+        #     x = odom_msg.pose.pose.position.x,
+        #     y = odom_msg.pose.pose.position.y,
+        #     # Convert from Vector3 to scalar
+        #     speed = np.linalg.norm(odom_msg.twist.twist.linear),
+        #     heading = cog_deg,
+        # )
 
     def contact_callback(self, contact):
-        rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", contact)
-        loa = contact.dimension_to_bow + contact.dimension_to_stern
-        lat = contact.position.latitude
-        lon = contact.position.longitude
-        sog = contact.sog
-        cog = contact.cog
-        other_vessel = Vessel(
-            length = loa,
-            x = lon,
-            y = lat,
-            speed = sog,
-            heading = cog,
+
+        # Convert reference frames from AIS's latitude/longitude to earth-centered, earth-fixed (ECEF)
+        ecef_x, ecef_y, ecef_z = project11.wgs84.toECEFfromDegrees(
+            contact.position.latitude,
+            contact.position.longitude,
         )
-        cpa = self.ben.cpa(other_vessel)
+        
+        # QUESTION: What exactly does this do?
+        Pbase = PoseStamped()
+        Pbase.pose.position.x = ecef_x
+        Pbase.pose.position.y = ecef_y
+        Pbase.pose.position.z = ecef_z
+
+        # Query conversion type from ECEF ('earth') to base_link
+        try:
+            ecef_to_base_link = self.tfBuffer.lookup_transform(
+                self.odom.header.frame_id,
+                'earth',
+                self.odom.header.stamp,
+            )
+        except Exception as e:
+            return
+        
+        base_link = do_transform_pose(Pbase, ecef_to_base_link)
+
+        # rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", contact)
+        # loa = contact.dimension_to_bow + contact.dimension_to_stern
+        # lat = contact.position.latitude
+        # lon = contact.position.longitude
+        # sog = contact.sog
+        # cog = contact.cog
+        # other_vessel = Vessel(
+        #     length = loa,
+        #     x = lon,
+        #     y = lat,
+        #     speed = sog,
+        #     heading = cog,
+        # )
+        # cpa = self.ben.cpa(other_vessel)
         # TODO
         # publish CPA!
         # (Need to decide message type...maybe just a position? Or position with time?)
