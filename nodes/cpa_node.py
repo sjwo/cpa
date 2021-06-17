@@ -74,7 +74,7 @@ class CpaNode():
         '''
         Save BEN's Odometry message to shared state for future access by contact_callback.
         '''
-        # rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
+        rospy.loginfo(rospy.get_caller_id() + " odom_callback starting")
         
         self.odom = odom_msg
 
@@ -108,6 +108,16 @@ class CpaNode():
         return v
 
     def contact_callback(self, contact):
+        '''
+        Main workhorse.
+
+        Convert's AIS Contact's position from 
+        '''
+        rospy.loginfo(rospy.get_caller_id() + " contact_callback starting")
+
+        # Abort if we don't yet know our own position
+        if self.odom is None:
+            return
 
         # I. Convert AIS Contact to same reference frame as our vessel
 
@@ -117,6 +127,8 @@ class CpaNode():
             contact.position.longitude,
         )
         
+        # TODO: Provide COG and speed information when creating other vessel's Odometry!!!
+
         # QUESTION: What exactly does this do?
         Pbase = PoseStamped()
         Pbase.pose.position.x = ecef_x
@@ -141,6 +153,7 @@ class CpaNode():
         us = self.odom_to_vessel(self.odom)
         them = self.odom_to_vessel(odom)
 
+        # CPA
         (
             time_at_cpa,
             their_position_at_cpa,
@@ -149,9 +162,8 @@ class CpaNode():
             bearing_to_them_at_cpa,
         ) = us.cpa(them)
 
+        # III. Publish CPA
         # TODO
-        # publish CPA!
-        # (Need to decide message type...maybe just a position? Or position with time?)
 
     # Not yet working; unused.
     def _scan_for_sources(self):
