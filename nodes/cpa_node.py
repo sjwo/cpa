@@ -59,20 +59,25 @@ class CpaNode():
         Pbase.pose.position.z = ecef_z
 
         # Query conversion type from ECEF to base_link
-        # TODO: convert hardcoded /ben/map to param from server, to generalize across vehicles
         try:
-            ecef_to_base = self.tfBuffer.lookup_transform("ben/map", 'earth', time)
+            # TODO: convert hardcoded /ben/map to param from server, to generalize across vehicles
+            ecef_to_base_link = self.tfBuffer.lookup_transform("ben/map", 'earth', time)
         except Exception as e:
             return
+        
+        base_link = do_transform_pose(Pbase, ecef_to_base_link)
 
 
 
 
     def odom_callback(self, odom_msg):
         '''
-        Update instance state.
+        Read vessel's position, orientation, and speed, convert to vessel's base_link frame,
+        and save to shared state.
         '''
-        rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
+        # rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
+        
+        
         o = odom_msg.pose.pose.orientation
         _roll, _pitch, cog_rad = euler_from_quaternion([o.x, o.y, o.z, o.w])
         cog_deg = (cog_rad / (2 * pi))* 360.0
