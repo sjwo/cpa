@@ -23,7 +23,7 @@ from math import pi
 from cpa.vessel import Vessel
 from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from tf2_geometry_msgs import do_transform_pose, PoseStamped
 
 class CpaNode():
@@ -92,19 +92,24 @@ class CpaNode():
 
         # I. Convert AIS Contact to same reference frame as our vessel
 
-        # Convert reference frames from AIS's latitude/longitude to earth-centered, earth-fixed (ECEF)
+        # Convert Contact's position's reference frame from AIS's latitude/longitude to earth-centered, earth-fixed (ECEF)
         ecef_x, ecef_y, ecef_z = project11.wgs84.toECEFfromDegrees(
             contact.position.latitude,
             contact.position.longitude,
         )
         
-        # TODO: Provide COG and speed information when creating other vessel's Odometry!!!
-
-        # QUESTION: What exactly does this do?
+        # Combine converted position with course over ground
+        # TODO: does course over ground itself need to be converted? Currently using raw.
         Pbase = PoseStamped()
         Pbase.pose.position.x = ecef_x
         Pbase.pose.position.y = ecef_y
         Pbase.pose.position.z = ecef_z
+        Pbase.pose.orientation = quaternion_from_euler(
+            # Roll and pitch are irrelevant for CPA (and unavailable from Contact)
+            0,
+            0,
+            contact.cog,
+        )
 
         # Query conversion type from ECEF ('earth') to base_link
         try:
@@ -116,7 +121,17 @@ class CpaNode():
         except Exception as e:
             return
         
+        # Convert other vessel's pose from ECEF to the reference frame used by our vessel's Odometry message
         odom = do_transform_pose(Pbase, ecef_to_odom)
+
+        # Set other vessel's speed over ground
+        # TODO: does Contact's sog (m/s) need to be converted? Currently using raw. Odometry is in meters...
+        # ...So is Odometry's twist.twist.linear in meters, also?
+        # TODO: Is this the correct way to set speed over ground? Does do_transform_pose(Pbase, ecef_to_odom) create
+        # a normalized (magnitude 1) twist.twist.linear Vector3 in the cog direction (so that I can just scale it by sog)?
+        odom.twist.twist.linear = odom.twist.twist.linear * contact.sog
+        
+        # Set speed over ground (Contact.sog and Odometry is m/s)
 
         # II. Calculate CPA
 
