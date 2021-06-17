@@ -33,7 +33,7 @@ class CpaNode():
         rospy.Subscriber('/ben/sensors/ais/contact', Contact, self.contact_callback, queue_size=10)
 
         self.tfBuffer = tf2_ros.Buffer()
-        self.tfListener = tf2_ros.TransformListener(tfBuffer)
+        self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
 
         # odom_callbackup will update this
         self.us_odom = None
@@ -77,21 +77,39 @@ class CpaNode():
         # rospy.loginfo(rospy.get_caller_id() + "O")#I heard Odometry message %s", data)
         
         self.odom = odom_msg
-        
-        # o = odom_msg.pose.pose.orientation
-        # _roll, _pitch, cog_rad = euler_from_quaternion([o.x, o.y, o.z, o.w])
-        # cog_deg = (cog_rad / (2 * pi))* 360.0
-        # self.ben = Vessel(
-        #     # As of 2021-06-13, the Vessel class does not use length for anything
-        #     length = None,
-        #     x = odom_msg.pose.pose.position.x,
-        #     y = odom_msg.pose.pose.position.y,
-        #     # Convert from Vector3 to scalar
-        #     speed = np.linalg.norm(odom_msg.twist.twist.linear),
-        #     heading = cog_deg,
-        # )
+
+    def odom_to_vessel(self, odom_msg):
+
+        o = odom_msg.pose.pose.orientation
+
+        _roll_rad, _pitch_rad, cog_rad = euler_from_quaternion(
+            [
+                o.x,
+                o.y,
+                o.z,
+                o.w,
+            ]
+        )
+        cog_deg = (cog_rad / (2 * pi)) * 360.0
+        x = odom_msg.pose.pose.position.x
+        y = odom_msg.pose.pose.position.y
+        speed = np.linalg.norm(odom_msg.twist.twist.linear)
+
+        v = Vessel(
+            # As of 2021-06-13, the Vessel class does not use length for anything
+            length = None,
+            x = x,
+            y = y,
+            speed = speed,
+            # COG is less noisy, and more appropriate for CPA, than heading
+            heading = cog_deg,
+        )
+
+        return v
 
     def contact_callback(self, contact):
+
+        # I. Convert AIS Contact to same reference frame as our vessel
 
         # Convert reference frames from AIS's latitude/longitude to earth-centered, earth-fixed (ECEF)
         ecef_x, ecef_y, ecef_z = project11.wgs84.toECEFfromDegrees(
@@ -107,7 +125,7 @@ class CpaNode():
 
         # Query conversion type from ECEF ('earth') to base_link
         try:
-            ecef_to_base_link = self.tfBuffer.lookup_transform(
+            ecef_to_odom = self.tfBuffer.lookup_transform(
                 self.odom.header.frame_id,
                 'earth',
                 self.odom.header.stamp,
@@ -115,22 +133,22 @@ class CpaNode():
         except Exception as e:
             return
         
-        base_link = do_transform_pose(Pbase, ecef_to_base_link)
+        odom = do_transform_pose(Pbase, ecef_to_odom)
 
-        # rospy.loginfo(rospy.get_caller_id() + "I found Contact source %s", contact)
-        # loa = contact.dimension_to_bow + contact.dimension_to_stern
-        # lat = contact.position.latitude
-        # lon = contact.position.longitude
-        # sog = contact.sog
-        # cog = contact.cog
-        # other_vessel = Vessel(
-        #     length = loa,
-        #     x = lon,
-        #     y = lat,
-        #     speed = sog,
-        #     heading = cog,
-        # )
-        # cpa = self.ben.cpa(other_vessel)
+        # II. Calculate CPA
+
+        # Our vessel
+        us = self.odom_to_vessel(self.odom)
+        them = self.odom_to_vessel(odom)
+
+        (
+            time_at_cpa,
+            their_position_at_cpa,
+            our_position_at_cpa,
+            range_to_them_at_cpa,
+            bearing_to_them_at_cpa,
+        ) = us.cpa(them)
+
         # TODO
         # publish CPA!
         # (Need to decide message type...maybe just a position? Or position with time?)
