@@ -16,12 +16,15 @@ License: BSD - Clause 2
 
 
 import rospy
+import tf2_ros
+import project11
 import numpy as np
 from math import pi
 from cpa.vessel import Vessel
 from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
 from tf.transformations import euler_from_quaternion
+from tf2_geometry_msgs import do_transform_pose, PoseStamped
 
 class CpaNode():
     def __init__(self):
@@ -29,11 +32,41 @@ class CpaNode():
         rospy.Subscriber('/ben/odom', Odometry, self.odom_callback, queue_size=10)
         rospy.Subscriber('/ben/sensors/ais/contact', Contact, self.contact_callback, queue_size=10)
 
+        self.tfBuffer = tf2_ros.Buffer()
+        self.tfListener = tf2_ros.TransformListener(tfBuffer)
+
         # odom_callbackup will update this
         self.ben = None
 
         # TODO
         # rospy.Publisher('/ben/cpa')
+
+    def convert_latlon_to_map(self, lat, lon, time):
+        '''
+        Convert from latitude and longitude to vehicle's base_link reference frame.
+
+        Intended to be used both for the vehicle's own position information and also that of
+        AIS Contacts.
+        '''
+        
+        # Convert reference frames from latitude/longitude to earth-centered, earth-fixed
+        ecef_x, ecef_y, ecef_z = project11.wgs84.toECEFfromDegrees(lat, lon)
+        
+        # QUESTION: What exactly does this do?
+        Pbase = PoseStamped()
+        Pbase.pose.position.x = ecef_x
+        Pbase.pose.position.y = ecef_y
+        Pbase.pose.position.z = ecef_z
+
+        # Query conversion type from ECEF to base_link
+        # TODO: convert hardcoded /ben/map to param from server, to generalize across vehicles
+        try:
+            ecef_to_base = self.tfBuffer.lookup_transform("ben/map", 'earth', time)
+        except Exception as e:
+            return
+
+
+
 
     def odom_callback(self, odom_msg):
         '''
