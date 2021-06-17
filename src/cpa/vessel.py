@@ -150,6 +150,7 @@ class Vessel(object):
         How might we do this? 
         We can calculate the CPA to the vessel.
         Then calculate the '''
+        pass
 
     def courses_to_collide(self,vessel,N=10,minSpeed=2.,maxSpeed=25):
         '''Calculate N speeds and headings for vessel that will ensure a collision.
