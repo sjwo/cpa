@@ -41,35 +41,6 @@ class CpaNode():
         # TODO
         # rospy.Publisher('/ben/cpa')
 
-    def convert_contact_to_vessel_(self, lat, lon, time):
-        '''
-        Convert from latitude and longitude to vehicle's base_link reference frame.
-
-        Intended to be used both for the vehicle's own position information and also that of
-        AIS Contacts.
-        '''
-        
-        # Convert reference frames from latitude/longitude to earth-centered, earth-fixed
-        ecef_x, ecef_y, ecef_z = project11.wgs84.toECEFfromDegrees(lat, lon)
-        
-        # QUESTION: What exactly does this do?
-        Pbase = PoseStamped()
-        Pbase.pose.position.x = ecef_x
-        Pbase.pose.position.y = ecef_y
-        Pbase.pose.position.z = ecef_z
-
-        # Query conversion type from ECEF to base_link
-        try:
-            # TODO: convert hardcoded /ben/map to param from server, to generalize across vehicles
-            ecef_to_base_link = self.tfBuffer.lookup_transform("ben/map", 'earth', time)
-        except Exception as e:
-            return
-        
-        base_link = do_transform_pose(Pbase, ecef_to_base_link)
-
-
-
-
     def odom_callback(self, odom_msg):
         '''
         Save BEN's Odometry message to shared state for future access by contact_callback.
