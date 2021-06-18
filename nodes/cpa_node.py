@@ -25,7 +25,6 @@ from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from tf2_geometry_msgs import do_transform_pose, PoseStamped
-from geometry_msgs import Point
 
 class CpaNode():
     def __init__(self):
