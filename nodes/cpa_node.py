@@ -100,10 +100,13 @@ class CpaNode():
         )
         
         # Combine converted position with course over ground
-        them_point_ecef = Point()
-        them_point_ecef.pose.position.x = ecef_x
-        them_point_ecef.pose.position.y = ecef_y
-        them_point_ecef.pose.position.z = ecef_z
+        them_pose_ecef = PoseStamped()
+        them_pose_ecef.header.stamp = contact.header.stamp
+        them_pose_ecef.header.frame_id = 'earth'
+        them_pose_ecef.pose.position.x = ecef_x
+        them_pose_ecef.pose.position.y = ecef_y
+        them_pose_ecef.pose.position.z = ecef_z
+        them_pose_ecef.pose.orientation = quaternion_from_euler(0.0, 0.0, contact.cog) # TODO review
 
         # Query conversion type from ECEF ('earth') to base_link
         try:
@@ -117,16 +120,16 @@ class CpaNode():
             return
         
         # Convert other vessel's pose from ECEF to the reference frame used by our vessel's Odometry message
-        rospy.loginfo(rospy.get_caller_id() + " type of them_point_ecef is " + str(type(them_point_ecef)))
+        rospy.loginfo(rospy.get_caller_id() + " type of them_pose_ecef is " + str(type(them_pose_ecef)))
 
-        odom = do_transform_pose(them_point_ecef, ecef_to_odom)
+        odom = do_transform_pose(them_pose_ecef, ecef_to_odom)
 
         rospy.loginfo(rospy.get_caller_id() + " type of odom is " + str(type(odom)))
 
         # Set other vessel's speed over ground
         # TODO: does Contact's sog (m/s) need to be converted? Currently using raw. Odometry is in meters...
         # ...So is Odometry's twist.twist.linear in meters, also?
-        # TODO: Is this the correct way to set speed over ground? Does do_transform_pose(them_point_ecef, ecef_to_odom) create
+        # TODO: Is this the correct way to set speed over ground? Does do_transform_pose(them_pose_ecef, ecef_to_odom) create
         # a normalized (magnitude 1) twist.twist.linear Vector3 in the cog direction (so that I can just scale it by sog)?
         rospy.loginfo(rospy.get_caller_id() + f" odom.twist.twist.linear after transform: {odom.twist.twist.linear}")
         odom.twist.twist.linear = odom.twist.twist.linear * contact.sog
