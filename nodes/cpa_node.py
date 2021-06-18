@@ -25,6 +25,7 @@ from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from tf2_geometry_msgs import do_transform_pose, PoseStamped
+from geometry_msgs.msg import Quaternion
 
 class CpaNode():
     def __init__(self):
@@ -106,7 +107,9 @@ class CpaNode():
         them_pose_ecef.pose.position.x = ecef_x
         them_pose_ecef.pose.position.y = ecef_y
         them_pose_ecef.pose.position.z = ecef_z
-        them_pose_ecef.pose.orientation = quaternion_from_euler(0.0, 0.0, contact.cog) # TODO review
+        q = quaternion_from_euler(0.0, 0.0, contact.cog) # TODO review
+        rospy.loginfo(rospy.get_caller_id() + " type of q is " + str(type(q)))
+        them_pose_ecef.pose.orientation = Quaternion(*q)
 
         # Query conversion type from ECEF ('earth') to base_link
         try:
