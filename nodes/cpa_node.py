@@ -25,6 +25,7 @@ from nav_msgs.msg import Odometry
 from marine_msgs.msg import Contact
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from tf2_geometry_msgs import do_transform_pose, PoseStamped
+from geometry_msgs import Point
 
 class CpaNode():
     def __init__(self):
@@ -36,7 +37,7 @@ class CpaNode():
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
 
         # odom_callbackup will update this
-        self.us_odom = None
+        self.odom = None
 
         # TODO
         # rospy.Publisher('/ben/cpa')
@@ -100,17 +101,10 @@ class CpaNode():
         )
         
         # Combine converted position with course over ground
-        # TODO: does course over ground itself need to be converted? Currently using raw.
-        Pbase = PoseStamped()
-        Pbase.pose.position.x = ecef_x
-        Pbase.pose.position.y = ecef_y
-        Pbase.pose.position.z = ecef_z
-        Pbase.pose.orientation = quaternion_from_euler(
-            # Roll and pitch are irrelevant for CPA (and unavailable from Contact)
-            0,
-            0,
-            contact.cog,
-        )
+        them_point_ecef = Point()
+        them_point_ecef.pose.position.x = ecef_x
+        them_point_ecef.pose.position.y = ecef_y
+        them_point_ecef.pose.position.z = ecef_z
 
         # Query conversion type from ECEF ('earth') to base_link
         try:
@@ -124,12 +118,16 @@ class CpaNode():
             return
         
         # Convert other vessel's pose from ECEF to the reference frame used by our vessel's Odometry message
-        odom = do_transform_pose(Pbase, ecef_to_odom)
+        rospy.loginfo(rospy.get_caller_id() + " type of them_point_ecef is " + str(type(them_point_ecef)))
+
+        odom = do_transform_pose(them_point_ecef, ecef_to_odom)
+
+        rospy.loginfo(rospy.get_caller_id() + " type of odom is " + str(type(odom)))
 
         # Set other vessel's speed over ground
         # TODO: does Contact's sog (m/s) need to be converted? Currently using raw. Odometry is in meters...
         # ...So is Odometry's twist.twist.linear in meters, also?
-        # TODO: Is this the correct way to set speed over ground? Does do_transform_pose(Pbase, ecef_to_odom) create
+        # TODO: Is this the correct way to set speed over ground? Does do_transform_pose(them_point_ecef, ecef_to_odom) create
         # a normalized (magnitude 1) twist.twist.linear Vector3 in the cog direction (so that I can just scale it by sog)?
         rospy.loginfo(rospy.get_caller_id() + f" odom.twist.twist.linear after transform: {odom.twist.twist.linear}")
         odom.twist.twist.linear = odom.twist.twist.linear * contact.sog
