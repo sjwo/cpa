@@ -84,10 +84,11 @@ class CpaNode():
 
         Convert's AIS Contact's position from 
         '''
-        rospy.loginfo(rospy.get_caller_id() + " contact_callback starting")
+        rospy.loginfo(rospy.get_caller_id() + f" contact_callback starting. COG = {contact.cog}, SOG = {contact.sog}.")
 
         # Abort if we don't yet know our own position
         if self.odom is None:
+            rospy.loginfo(rospy.get_caller_id() + " Own position unknown.")
             return
 
         # I. Convert AIS Contact to same reference frame as our vessel
@@ -119,6 +120,7 @@ class CpaNode():
                 self.odom.header.stamp,
             )
         except Exception as e:
+            rospy.loginfo(rospy.get_caller_id() + " Failed to query transform.")
             return
         
         # Convert other vessel's pose from ECEF to the reference frame used by our vessel's Odometry message
@@ -129,6 +131,7 @@ class CpaNode():
         # ...So is Odometry's twist.twist.linear in meters, also?
         # TODO: Is this the correct way to set speed over ground? Does do_transform_pose(Pbase, ecef_to_odom) create
         # a normalized (magnitude 1) twist.twist.linear Vector3 in the cog direction (so that I can just scale it by sog)?
+        rospy.loginfo(rospy.get_caller_id() + f" odom.twist.twist.linear after transform: {odom.twist.twist.linear}")
         odom.twist.twist.linear = odom.twist.twist.linear * contact.sog
         
         # Set speed over ground (Contact.sog and Odometry is m/s)
