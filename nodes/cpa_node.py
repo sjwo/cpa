@@ -86,10 +86,9 @@ class CpaNode():
         Convert's AIS Contact's position from 
         '''
         rospy.loginfo(rospy.get_caller_id() + f" contact_callback starting. COG = {contact.cog}, SOG = {contact.sog}.")
-
         # Abort if we don't yet know our own position
         if self.odom is None:
-            rospy.loginfo(rospy.get_caller_id() + " Own position unknown.")
+            rospy.logwarn(rospy.get_caller_id() + " Own position unknown.")
             return
 
         # I. Convert AIS Contact to same reference frame as our vessel
@@ -119,23 +118,25 @@ class CpaNode():
                 self.odom.header.stamp,
             )
         except Exception as e:
-            rospy.loginfo(rospy.get_caller_id() + " Failed to query transform.")
+            rospy.logerr(rospy.get_caller_id() + " Failed to query transform.")
             return
         
         # Convert other vessel's pose from ECEF to the reference frame used by our vessel's Odometry message
         rospy.loginfo(rospy.get_caller_id() + " type of them_pose_ecef is " + str(type(them_pose_ecef)))
 
-        odom = do_transform_pose(them_pose_ecef, ecef_to_odom)
+        them_pose_odom = do_transform_pose(them_pose_ecef, ecef_to_odom)
 
-        rospy.loginfo(rospy.get_caller_id() + " type of odom is " + str(type(odom)))
+        rospy.loginfo(rospy.get_caller_id() + " type of them_pose_odom is " + str(type(them_pose_odom)))
 
         # Set other vessel's speed over ground
         # TODO: does Contact's sog (m/s) need to be converted? Currently using raw. Odometry is in meters...
         # ...So is Odometry's twist.twist.linear in meters, also?
         # TODO: Is this the correct way to set speed over ground? Does do_transform_pose(them_pose_ecef, ecef_to_odom) create
         # a normalized (magnitude 1) twist.twist.linear Vector3 in the cog direction (so that I can just scale it by sog)?
-        rospy.loginfo(rospy.get_caller_id() + f" odom.twist.twist.linear after transform: {odom.twist.twist.linear}")
-        odom.twist.twist.linear = odom.twist.twist.linear * contact.sog
+        q2 = them_pose_odom.pose.orientation
+        _roll, _pitch, them_cog_odom = euler_from_quaternion([q2.x, q2.y, q2.z, q2.w])
+        rospy.loginfo(rospy.get_caller_id() + f" them_cog_odom (after transform): {them_cog_odom}")
+        # them_pose_odom.twist.twist.linear = them_pose_odom.twist.twist.linear * contact.sog
         
         # Set speed over ground (Contact.sog and Odometry is m/s)
 
